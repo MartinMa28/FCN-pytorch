@@ -10,7 +10,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs
-from Cityscapes_loader import CityscapesDataset
+from Cityscapes_loader import CityScapesDataset
 from CamVid_loader import CamVidDataset
 
 from matplotlib import pyplot as plt
@@ -34,7 +34,7 @@ print("Configs:", configs)
 
 if sys.argv[1] == 'CamVid':
     root_dir   = "CamVid/"
-else
+else:
     root_dir   = "CityScapes/"
 train_file = os.path.join(root_dir, "train.csv")
 val_file   = os.path.join(root_dir, "val.csv")
