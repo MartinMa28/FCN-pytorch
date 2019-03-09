@@ -70,6 +70,7 @@ def divide_train_val(val_rate=0.1, shuffle=True, random_seed=None):
         t.write("{},{}\n".format(img_name, lab_name))
 
 
+
 def parse_label():
     # change label to class index
     f = open(label_colors_file, "r").read().split("\n")[:-1]  # ignore the last empty line
@@ -87,19 +88,23 @@ def parse_label():
         # rgb[..., 2] = color[2]
         # imshow(rgb, title=label)
     
-    for idx, name in enumerate(os.listdir(label_dir)):
+
+    label_list = os.listdir(label_dir)
+    
+    def generate_dense_labels_and_save_to_disk(name):
         filename = os.path.join(label_idx_dir, name)
         if os.path.exists(filename + '.npy'):
             print("Skip %s" % (name))
-            continue
+            return None
+
         print("Parse %s" % (name))
         img = os.path.join(label_dir, name)
         img = scipy.misc.imread(img, mode='RGB')
-        height, weight, _ = img.shape
+        height, width, _ = img.shape
     
-        idx_mat = np.zeros((height, weight))
+        idx_mat = np.zeros((height, width))
         for h in range(height):
-            for w in range(weight):
+            for w in range(width):
                 color = tuple(img[h, w])
                 try:
                     label = color2label[color]
@@ -111,6 +116,9 @@ def parse_label():
         np.save(filename, idx_mat)
         print("Finish %s" % (name))
 
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        executor.map(generate_dense_labels_and_save_to_disk, label_list)
     # test some pixels' label    
     # img = os.path.join(label_dir, os.listdir(label_dir)[0])
     # img = scipy.misc.imread(img, mode='RGB')   
