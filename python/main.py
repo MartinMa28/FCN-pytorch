@@ -47,6 +47,10 @@ if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 model_path = os.path.join(model_dir, configs)
 
+score_dir = os.path.join("scores", configs)
+if not os.path.exists(score_dir):
+    os.makedirs(score_dir)
+
 use_gpu = torch.cuda.is_available()
 device = torch.device('cuda:0' if use_gpu else 'cpu')
 IU_scores    = np.zeros((epochs, n_classes))
@@ -101,10 +105,6 @@ def get_fcn_model(num_classes, use_gpu):
     
     return fcn_model
 
-def create_score_dir():
-    score_dir = os.path.join("scores", configs)
-    if not os.path.exists(score_dir):
-        os.makedirs(score_dir)
 
 def time_stamp() -> str:
     ts = time.time()
@@ -209,10 +209,16 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     
     # load best model weights
     model.load_state_dict(best_model_wts)
+
+    # save numpy results
+    np.save(os.path.join(score_dir, 'epoch_accuracy'), epoch_acc)
+    np.save(os.path.join(score_dir, 'epoch_mean_iou'), epoch_mean_iou)
+    np.save(os.path.join(score_dir, 'epoch_iou'), epoch_iou)
+
     return model
 
 if __name__ == "__main__":
-    pass    
+    train(data_set_type, n_classes, batch_size, epochs, use_gpu) 
 
 
 
