@@ -168,7 +168,6 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
             running_iou = np.zeros((1, num_classes))
             
             for imgs, targets in data_loader[phase]:
-                batch_counter += 1
                 imgs = Variable(imgs).float()
                 imgs = imgs.to(device)
                 targets = Variable(targets).type(torch.LongTensor)
