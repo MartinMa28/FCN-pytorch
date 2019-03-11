@@ -32,7 +32,7 @@ lr = 1e-4
 w_decay = 1e-5
 step_size = 5
 gamma = 0.5
-configs = "FCNs-CrossEntropyLoss_batch{}_epoch{}_Adam_scheduler-step{}-gamma{}_lr{}_momentum{}_w_decay{}".format(batch_size, epochs, step_size, gamma, lr, momentum, w_decay)
+configs = "FCNs-CrossEntropyLoss_batch{}_training_epochs{}_Adam_scheduler-step{}-gamma{}_lr{}_w_decay{}".format(batch_size, epochs, step_size, gamma, lr, w_decay)
 print('Configs: ')
 print(configs)
 
@@ -148,24 +148,27 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
 
     epoch_loss = np.zeros(epochs)
     epoch_acc = np.zeros(epochs)
-    epoch_iou = np.zeros(epochs, num_classes)
+    epoch_iou = np.zeros((epochs, num_classes))
     epoch_mean_iou = np.zeros(epochs)
 
     for epoch in range(epochs):
         print('Epoch {}/{}'.format(epoch + 1, epochs))
-        print('-' * 17)
+        print('-' * 28)
         
-        for phase in ['train', 'val']:
+        for phase in ['val', 'train']:
             if phase == 'train':
                 fcn_model.train()
             else:
-                model.eval()
+                fcn_model.eval()
         
             running_loss = 0.0
             running_acc = 0.0
             running_mean_iou = 0.0
             running_iou = np.zeros((1, num_classes))
+            batch_counter = 0
             for imgs, targets in data_loader[phase]:
+                batch_counter += 1
+                print('DEBUG -- batch', batch_counter)
                 imgs = imgs.to(device)
                 targets = targets.to(device)
 
@@ -182,7 +185,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                         optimizer.step()
 
                 # computes loss and acc for current iteration
-                ious, mean_ious = iou(preds, targets)
+                ious, mean_ious = iou(preds, targets, n_classes)
                 
                 running_loss += loss * imgs.size(0)
                 running_acc += pixelwise_acc(preds, targets) * imgs.size(0)
@@ -218,9 +221,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     return model
 
 if __name__ == "__main__":
-    train(data_set_type, n_classes, batch_size, epochs, use_gpu) 
-
-
+    train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay) 
 
 
 

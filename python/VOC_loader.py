@@ -13,6 +13,29 @@ class VOCSeg(datasets.VOCSegmentation):
     For example, when doing random crop, we hope to deploy the exact same random crop
     for both the image and its dense labels.
     """
+    
+    # class variables for VOC color maps
+    voc_colors = [[0, 0, 0], [128, 0, 0], [0, 128, 0], [128, 128, 0],
+                [0, 0, 128], [128, 0, 128], [0, 128, 128], [128, 128, 128],
+                [64, 0, 0], [192, 0, 0], [64, 128, 0], [192, 128, 0],
+                [64, 0, 128], [192, 0, 128], [64, 128, 128], [192, 128, 128],
+                [0, 64, 0], [128, 64, 0], [0, 192, 0], [128, 192, 0],
+                [0, 64, 128]]
+    voc_classes = ['background', 'aeroplane', 'bicycle', 'bird', 'boat',
+               'bottle', 'bus', 'car', 'cat', 'chair', 'cow',
+               'diningtable', 'dog', 'horse', 'motorbike', 'person',
+               'potted plant', 'sheep', 'sofa', 'train', 'tv/monitor']
+    
+    def get_color_map(self, colors, classes):
+        color_map = {}
+        for ind, color in enumerate(colors):
+            # makes colors hashable
+            color = str(color[0]).zfill(3) + '/' + str(color[1]).zfill(3) + '/' + str(color[2]).zfill(3)
+            color_map[color] = (ind, classes[ind])
+        
+        return color_map
+        
+    
     def __getitem__(self, index):
         """
         Args:
@@ -22,8 +45,23 @@ class VOCSeg(datasets.VOCSegmentation):
             tuple: (image, target) where target is the image segmentation.
         """
         img = Image.open(self.images[index]).convert('RGB')
-        target = Image.open(self.masks[index])
-        sample = (img, target)
+        # Original targets are palettized images, refering to colors by index (0 - 255).
+        # Firstly, converts palettized images to RGB images.
+        target = Image.open(self.masks[index]).convert('RGB')
+        target = np.array(target)
+        
+        # Secondly, get the VOC classification indices by mapping RGB colors to colormap
+        height, width, _ = target.shape
+        index_target = np.zeros((height, width))
+        color_map = self.get_color_map(self.voc_colors, self.voc_classes)
+        for h in range(height):
+            for w in range(width):
+                color = target[h, w]
+                color = str(color[0]).zfill(3) + '/' + str(color[1]).zfill(3) + '/' + str(color[2]).zfill(3)
+                ind = color_map.get(color, (0, 'background'))[0]
+                index_target[h, w] = ind
+    
+        sample = (img, index_target)
         
         if self.transform is not None:
             sample = self.transform(sample)
@@ -164,7 +202,7 @@ class ToTensor():
         # torch Tensor image: C x H x W
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img)
-        target = torch.from_numpy(target)
+        target = torch.from_numpy(target).to(torch.int64)
         if isinstance(img, torch.ByteTensor):
             img = img.to(dtype=torch.float32)
         
