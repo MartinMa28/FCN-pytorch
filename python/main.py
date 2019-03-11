@@ -22,7 +22,9 @@ import datetime
 import sys
 import os
 
+import logging
 # global variables
+logging.basicConfig(filename='logs/basic_logs.log', level=logging.INFO)
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
@@ -155,6 +157,8 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     for epoch in range(epochs):
         print('Epoch {}/{}'.format(epoch + 1, epochs))
         print('-' * 28)
+        logging.info('Epoch {}/{}'.format(epoch + 1, epochs))
+        logging.info('-' * 28)
         
         for phase in ['train', 'val']:
             if phase == 'train':
