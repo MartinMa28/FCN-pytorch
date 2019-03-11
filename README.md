@@ -27,7 +27,7 @@ I train with two popular benchmark dataset: CamVid and Cityscapes
 
 ### Install packages
 ```bash
-pip3 install -r requirements.txt
+conda install -r requirements.txt
 ```
 
 and download pytorch 0.2.0 from [pytorch.org](pytorch.org)
@@ -51,5 +51,5 @@ python3 python/CityScapes_utils.py
 python3 python/train.py CityScapes
 ```
 
-## Author
-Po-Chih Huang / [@pochih](https://pochih.github.io/)
+<!-- ## Author
+Po-Chih Huang / [@pochih](https://pochih.github.io/) -->

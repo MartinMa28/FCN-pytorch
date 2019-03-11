@@ -18,6 +18,7 @@ import copy
 from matplotlib import pyplot as plt
 import numpy as np
 import time
+import datetime
 import sys
 import os
 
@@ -155,7 +156,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         print('Epoch {}/{}'.format(epoch + 1, epochs))
         print('-' * 28)
         
-        for phase in ['val', 'train']:
+        for phase in ['train', 'val']:
             if phase == 'train':
                 fcn_model.train()
             else:
@@ -165,11 +166,12 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
             running_acc = 0.0
             running_mean_iou = 0.0
             running_iou = np.zeros((1, num_classes))
-            batch_counter = 0
+            
             for imgs, targets in data_loader[phase]:
                 batch_counter += 1
-                print('DEBUG -- batch', batch_counter)
+                imgs = Variable(imgs).float()
                 imgs = imgs.to(device)
+                targets = Variable(targets).type(torch.LongTensor)
                 targets = targets.to(device)
 
                 # zero the learnable parameters gradients
@@ -197,7 +199,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
             epoch_iou[epoch] = running_iou / len(data_set[phase])
             epoch_mean_iou[epoch] = running_mean_iou / len(data_set[phase])
 
-            print('{} - {} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(time_stamp,\
+            print('{} - {} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(time_stamp(),\
                 phase, epoch_loss[epoch], epoch_acc[epoch], epoch_mean_iou[epoch]))
 
             if phase == 'val' and epoch_acc > best_acc:
@@ -221,7 +223,8 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     return model
 
 if __name__ == "__main__":
-    train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay) 
+    fcn_model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay)
+    torch.save(fcn_model.state_dict(), os.path.join(score_dir, 'trained_model'))
 
 
 

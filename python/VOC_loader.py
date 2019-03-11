@@ -54,6 +54,7 @@ class VOCSeg(datasets.VOCSegmentation):
         height, width, _ = target.shape
         index_target = np.zeros((height, width))
         color_map = self.get_color_map(self.voc_colors, self.voc_classes)
+
         for h in range(height):
             for w in range(width):
                 color = target[h, w]
@@ -122,6 +123,14 @@ class RandomCrop():
         # convert PIL.Image to np.ndarray
         img = np.asarray(img)
         target = np.asarray(target)
+        if img.shape[0] < 224 or img.shape[1] < 224:
+            # if this image is smaller than 224 x 224, discards it by zeroing out
+            # this image and its dense labels
+            img = np.zeros((224, 224, 3))
+            target = np.zeros((224, 224))
+
+            return img, target
+        
         assert img.shape[:2] == target.shape[:2]
         h, w = img.shape[:2]
         
@@ -158,6 +167,14 @@ class CenterCrop():
         # convert PIL Image to numpy.ndarray
         img = np.asarray(img)
         target = np.asarray(target)
+        if img.shape[0] < 224 or img.shape[1] < 224:
+            # if this image is smaller than 224 x 224, discards it by zeroing out
+            # this image and its dense labels
+            img = np.zeros((224, 224, 3))
+            target = np.zeros((224, 224))
+
+            return img, target
+
         assert img.shape[:2] == target.shape[:2]
         h, w = img.shape[:2]
         
@@ -201,10 +218,11 @@ class ToTensor():
         # numpy image: H x W x C
         # torch Tensor image: C x H x W
         img = img.transpose(2, 0, 1)
-        img = torch.from_numpy(img)
-        target = torch.from_numpy(target).to(torch.int64)
-        if isinstance(img, torch.ByteTensor):
-            img = img.to(dtype=torch.float32)
+        img = torch.from_numpy(img).float()
+        #target = torch.from_numpy(target).to(torch.int64)
+        target = torch.from_numpy(target).float()
+        # if isinstance(img, torch.ByteTensor):
+        #     img = img.to(dtype=torch.float32)
         
         return img, target
 
