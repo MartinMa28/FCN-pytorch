@@ -58,7 +58,8 @@ score_dir = os.path.join("scores", configs)
 if not os.path.exists(score_dir):
     os.makedirs(score_dir)
 
-use_gpu = torch.cuda.is_available()
+# use_gpu = torch.cuda.is_available()
+use_gpu = False
 device = torch.device('cuda:0' if use_gpu else 'cpu')
 IU_scores    = np.zeros((epochs, n_classes))
 pixel_scores = np.zeros(epochs)
