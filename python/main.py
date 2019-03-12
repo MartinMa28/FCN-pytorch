@@ -91,15 +91,15 @@ def get_dataset_dataloader(data_set_type, batch_size):
     
 
     data_loader = {
-        'train': DataLoader(data_set['train'], batch_size=batch_size, shuffle=True),
-        'val': DataLoader(data_set['val'], batch_size=batch_size, shuffle=False)
+        'train': DataLoader(data_set['train'], batch_size=batch_size, shuffle=True, num_workers=0),
+        'val': DataLoader(data_set['val'], batch_size=batch_size, shuffle=False, num_workers=0)
     }
 
     return data_set, data_loader
 
 def get_fcn_model(num_classes, use_gpu):
     vgg_model = VGGNet(requires_grad=True, remove_fc=True)
-    fcn_model = FCNs(pretrained_net=vgg_model, n_class=num_classes)
+    fcn_model = FCN8s(pretrained_net=vgg_model, n_class=num_classes)
 
     if use_gpu:
         ts = time.time()
@@ -163,7 +163,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         logger.info('-' * 28)
         
         
-        for phase in ['val', 'train']:
+        for phase in ['train', 'val']:
             if phase == 'train':
                 fcn_model.train()
                 logger.info(phase)
