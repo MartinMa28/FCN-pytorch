@@ -23,13 +23,17 @@ import sys
 import os
 
 import logging
+from logging.config import fileConfig
+
 # global variables
-logging.basicConfig(filename='logs/basic_logs.log', level=logging.INFO)
+fileConfig('./logging_conf.ini')
+logger = logging.getLogger('main')
+
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
 batch_size = 4
-epochs = 50
+epochs = 1
 lr = 1e-4
 #momentum = 0
 w_decay = 1e-5
@@ -155,23 +159,27 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     epoch_mean_iou = np.zeros(epochs)
 
     for epoch in range(epochs):
-        print('Epoch {}/{}'.format(epoch + 1, epochs))
-        print('-' * 28)
-        logging.info('Epoch {}/{}'.format(epoch + 1, epochs))
-        logging.info('-' * 28)
+        logger.info('Epoch {}/{}'.format(epoch + 1, epochs))
+        logger.info('-' * 28)
         
-        for phase in ['train', 'val']:
+        
+        for phase in ['val', 'train']:
             if phase == 'train':
                 fcn_model.train()
+                logger.info(phase)
             else:
                 fcn_model.eval()
+                logger.info(phase)
         
             running_loss = 0.0
             running_acc = 0.0
             running_mean_iou = 0.0
             running_iou = np.zeros((1, num_classes))
             
+            batch_counter = 0
             for imgs, targets in data_loader[phase]:
+                batch_counter += 1
+                logger.debug('Batch {}'.format(batch_counter))
                 imgs = Variable(imgs).float()
                 imgs = imgs.to(device)
                 targets = Variable(targets).type(torch.LongTensor)
@@ -196,23 +204,25 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                 running_acc += pixelwise_acc(preds, targets) * imgs.size(0)
                 running_iou += ious * imgs.size(0)
                 running_mean_iou += mean_ious * imgs.size(0)
+                logger.debug('Batch {} running loss: {}'.format(batch_counter, running_loss))
             
             epoch_loss[epoch] = running_loss / len(data_set[phase])
             epoch_acc[epoch] = running_acc / len(data_set[phase])
             epoch_iou[epoch] = running_iou / len(data_set[phase])
             epoch_mean_iou[epoch] = running_mean_iou / len(data_set[phase])
 
-            print('{} - {} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(time_stamp(),\
-                phase, epoch_loss[epoch], epoch_acc[epoch], epoch_mean_iou[epoch]))
+            
+            logger.info('{} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(phase,\
+                epoch_loss[epoch], epoch_acc[epoch], epoch_mean_iou[epoch]))
 
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
+            if phase == 'val' and epoch_acc[epoch] > best_acc:
+                best_acc = epoch_acc[epoch]
                 best_model_wts = copy.deepcopy(fcn_model.state_dict())
         
         print()
     
     time_elapsed = time.time() - since
-    print('Training completed in {:0.f}m {:0.f}s'.format(int(time_elapsed / 60),\
+    logger.info('Training completed in {:0.f}m {:0.f}s'.format(int(time_elapsed / 60),\
         time_elapsed % 60))
     
     # load best model weights

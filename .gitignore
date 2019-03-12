@@ -5,4 +5,5 @@ CamVid/
 Cityscapes/
 VOC/
 scores/
+logs/
 .vscode
