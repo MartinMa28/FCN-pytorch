@@ -37,7 +37,7 @@ and download [CamVid](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/
 ### Run the code
 - default dataset is Pascal VOC
 
-create a directory named "VOC", and put data into it, then run python codes:
+create a directory named "VOC", and put data into it, then run python codes:  
 Note that the pre-processing script may take for a while, because it's going to   
 generate pixelwise labels for each image in the training set and the validation set.  
 There is not a decent progress bar to reveal how much it has done, since I hope to  
