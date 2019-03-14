@@ -26,6 +26,10 @@ import logging
 from logging.config import fileConfig
 
 # global variables
+if not os.path.exists('logs/'):
+    os.makedirs('logs/')
+    os.mknod('logs/basic_logs.log')
+    
 fileConfig('./logging_conf.ini')
 logger = logging.getLogger('main')
 
