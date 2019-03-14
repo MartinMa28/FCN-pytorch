@@ -38,6 +38,11 @@ and download [CamVid](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/
 - default dataset is Pascal VOC
 
 create a directory named "VOC", and put data into it, then run python codes:
+Note that the pre-processing script may take for a while, because it's going to   
+generate pixelwise labels for each image in the training set and the validation set.  
+There is not a decent progress bar to reveal how much it has done, since I hope to  
+make it run in multi-threads. The year of images should be in the range from 2007 to  
+2012, so you could estimate the amount of work from the file name.
 ```python
 python3 python/VOC_preprocessing.py 
 python3 python/main.py VOC
