@@ -222,8 +222,8 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         print()
     
     time_elapsed = time.time() - since
-    logger.info('Training completed in {:0.f}m {:0.f}s'.format(int(time_elapsed / 60),\
-        time_elapsed % 60))
+    logger.info('Training completed in {}m {}s'.format(int(time_elapsed / 60),\
+        int(time_elapsed) % 60))
     
     # load best model weights
     model.load_state_dict(best_model_wts)
