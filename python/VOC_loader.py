@@ -4,6 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+import os
 
 class VOCSeg(datasets.VOCSegmentation):
     """
@@ -25,8 +26,9 @@ class VOCSeg(datasets.VOCSegmentation):
                'bottle', 'bus', 'car', 'cat', 'chair', 'cow',
                'diningtable', 'dog', 'horse', 'motorbike', 'person',
                'potted plant', 'sheep', 'sofa', 'train', 'tv/monitor']
-    
-    def get_color_map(self, colors, classes):
+        
+    @classmethod
+    def get_color_map(cls, colors, classes):
         color_map = {}
         for ind, color in enumerate(colors):
             # makes colors hashable
@@ -35,7 +37,44 @@ class VOCSeg(datasets.VOCSegmentation):
         
         return color_map
         
-    
+    @classmethod
+    def create_target_folder(cls, root, image_set):
+        target_folder = os.path.join(root, 'VOCdevkit/VOC2012/SegmentationTargets/' + image_set)
+        if not os.path.exists(target_folder):
+            os.makedirs(target_folder)
+
+        return target_folder
+
+    @classmethod
+    def preprocess_targets(cls, target_folder, target_img_path):
+        img_name = os.path.basename(target_img_path).split('.')[0]
+        print('processing ' + img_name)
+        if os.path.exists(os.path.join(target_folder, img_name) + '.npy'):
+            print('skip ' + img_name)
+            return None
+        
+        # Original targets are palettized images, refering to colors by index (0 - 255).
+        # Firstly, converts palettized images to RGB images.
+        target = Image.open(target_img_path).convert('RGB')
+        target = np.array(target)
+
+        # Secondly, get the VOC classification indices by mapping RGB colors to colormap
+        height, width, _ = target.shape
+        index_target = np.zeros((height, width))
+        color_map = cls.get_color_map(cls.voc_colors, cls.voc_classes)
+
+        for h in range(height):
+            for w in range(width):
+                color = target[h, w]
+                color = str(color[0]).zfill(3) + '/' + str(color[1]).zfill(3) + '/' + str(color[2]).zfill(3)
+                ind = color_map.get(color, (0, 'background'))[0]
+                index_target[h, w] = ind
+        
+        np.save(os.path.join(target_folder, img_name), index_target)
+
+
+
+
     def __getitem__(self, index):
         """
         Args:
