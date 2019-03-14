@@ -1,4 +1,4 @@
-[![Open Source Love](https://badges.frapsoft.com/os/v1/open-source-150x25.png?v=103)](https://github.com/ellerbrock/open-source-badges/)
+
 
 ## 🚘 The easiest implementation of fully convolutional networks
 
@@ -30,17 +30,17 @@ I train with two popular benchmark dataset: CamVid and Cityscapes
 conda install -r requirements.txt
 ```
 
-and download pytorch 0.2.0 from [pytorch.org](pytorch.org)
+download [Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar)
 
 and download [CamVid](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/) dataset (recommended) or [Cityscapes](https://www.cityscapes-dataset.com/) dataset
 
 ### Run the code
-- default dataset is CamVid
+- default dataset is Pascal VOC
 
-create a directory named "CamVid", and put data into it, then run python codes:
+create a directory named "VOC", and put data into it, then run python codes:
 ```python
-python3 python/CamVid_utils.py 
-python3 python/train.py CamVid
+python3 python/VOC_preprocessing.py 
+python3 python/main.py VOC
 ```
 
 - or train with CityScapes
