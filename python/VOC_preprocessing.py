@@ -6,7 +6,7 @@ if __name__ == "__main__":
     
     for phase in ['train', 'val']:
         print('processing {} data'.format(phase))
-        target_folder = VOCSeg.create_target_folder('VOC/', phase)
+        target_folder = VOCSeg.create_target_folder('VOC/')
         
         def _preprocess_target(target_img_path):
             VOCSeg.preprocess_targets(target_folder, target_img_path)

@@ -38,8 +38,8 @@ class VOCSeg(datasets.VOCSegmentation):
         return color_map
         
     @classmethod
-    def create_target_folder(cls, root, image_set):
-        target_folder = os.path.join(root, 'VOCdevkit/VOC2012/SegmentationTargets/' + image_set)
+    def create_target_folder(cls, root):
+        target_folder = os.path.join(root, 'VOCdevkit/VOC2012/SegmentationTargets/')
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
 
