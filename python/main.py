@@ -125,8 +125,9 @@ def iou(pred, target, n_classes):
     for cl in range(n_classes):
         pred_inds = (pred == cl)
         target_inds = (target == cl)
-        intersection = pred_inds[target_inds].sum()
+        intersection = pred_inds[target_inds].sum().to(torch.float32)
         union = pred_inds.sum() + target_inds.sum() - intersection
+        union = union.to(torch.float32)
         if union == 0:
             # if there is no ground truth, do not include in evaluation
             ious[cl] = float('nan')  
@@ -136,8 +137,8 @@ def iou(pred, target, n_classes):
     return ious.reshape((1, n_classes)), np.nanmean(ious)
 
 def pixelwise_acc(pred, target):
-    correct = (pred == target).sum()
-    total   = (target == target).sum()
+    correct = (pred == target).sum().to(torch.float32)
+    total   = (target == target).sum().to(torch.float32)
     return correct / total
 
 
@@ -226,18 +227,18 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         int(time_elapsed) % 60))
     
     # load best model weights
-    model.load_state_dict(best_model_wts)
+    fcn_model.load_state_dict(best_model_wts)
 
     # save numpy results
     np.save(os.path.join(score_dir, 'epoch_accuracy'), epoch_acc)
     np.save(os.path.join(score_dir, 'epoch_mean_iou'), epoch_mean_iou)
     np.save(os.path.join(score_dir, 'epoch_iou'), epoch_iou)
 
-    return model
+    return fcn_model
 
 if __name__ == "__main__":
     fcn_model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay)
-    torch.save(fcn_model.state_dict(), os.path.join(score_dir, 'trained_model'))
+    torch.save(fcn_model.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
 
 
 
