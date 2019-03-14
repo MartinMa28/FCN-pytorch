@@ -72,7 +72,15 @@ class VOCSeg(datasets.VOCSegmentation):
         
         np.save(os.path.join(target_folder, img_name), index_target)
 
-
+    def __init__(self,
+                 root,
+                 year='2012',
+                 image_set='train',
+                 download=False,
+                 transform=None,
+                 target_transform=None):
+        super().__init__(root, year, image_set, download, transform, target_transform)
+        self.target_folder = os.path.join(self.root, 'VOCdevkit/VOC2012/SegmentationTargets')
 
 
     def __getitem__(self, index):
@@ -84,24 +92,12 @@ class VOCSeg(datasets.VOCSegmentation):
             tuple: (image, target) where target is the image segmentation.
         """
         img = Image.open(self.images[index]).convert('RGB')
-        # Original targets are palettized images, refering to colors by index (0 - 255).
-        # Firstly, converts palettized images to RGB images.
-        target = Image.open(self.masks[index]).convert('RGB')
-        target = np.array(target)
+        target_name = os.path.basename(self.masks[index]).split('.')[0]
+        target_name = target_name + '.npy'
         
-        # Secondly, get the VOC classification indices by mapping RGB colors to colormap
-        height, width, _ = target.shape
-        index_target = np.zeros((height, width))
-        color_map = self.get_color_map(self.voc_colors, self.voc_classes)
-
-        for h in range(height):
-            for w in range(width):
-                color = target[h, w]
-                color = str(color[0]).zfill(3) + '/' + str(color[1]).zfill(3) + '/' + str(color[2]).zfill(3)
-                ind = color_map.get(color, (0, 'background'))[0]
-                index_target[h, w] = ind
+        target = np.load(os.path.join(self.target_folder, target_name))
     
-        sample = (img, index_target)
+        sample = (img, target)
         
         if self.transform is not None:
             sample = self.transform(sample)
