@@ -113,6 +113,34 @@ class FCN8s(nn.Module):
 
         return score  # size=(N, n_class, x.H/1, x.W/1)
 
+class FCN8s_bilinear(nn.Module):
+    def __init__(self, pretrained_net, n_class):
+        super().__init__()
+        self.n_class = n_class
+        self.pretrained_net = pretrained_net
+        self.relu = nn.ReLU()
+        self.conv1 = nn.Conv2d(512, 256, kernel_size=1, padding=0, stride=1)
+        self.conv2 = nn.Conv2d(256, 64, kernel_size=1, padding=0, stride=1)
+        self.classifier = nn.Conv2d(64, n_class, kernel_size=1, padding=0, stride=1)
+
+    def forward(self, x):
+        output = self.pretrained_net(x)
+        x5 = output['x5']  # size=(N, 512, x.H/32, x.W/32)
+        x4 = output['x4']  # size=(N, 512, x.H/16, x.W/16)
+        x3 = output['x3']  # size=(N, 256, x.H/8,  x.W/8)
+
+        score = nn.functional.interpolate(x5, scale_factor=2, mode='bilinear', align_corners=True)
+        score += x4
+        score = nn.functional.interpolate(score, scale_factor=2, mode='bilinear', align_corners=True)
+        score = self.relu(self.conv1(score))
+        score += x3
+        score = nn.functional.interpolate(score, scale_factor=8, mode='bilinear', align_corners=True)
+        score = self.relu(self.conv2(score))
+
+        score = self.classifier(score)
+
+        # size=(N, n_class, x.H/1, x.W/1)
+        return score
 
 class FCNs(nn.Module):
 
@@ -246,10 +274,14 @@ if __name__ == "__main__":
     output = fcn_model(input)
     assert output.size() == torch.Size([batch_size, n_class, h, w])
 
+    fcn_model = FCN8s_bilinear(pretrained_net=vgg_model, n_class=n_class)
+    inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, 2))
+    ouput = fcn_model(inp)
+    assert output.size() == torch.Size([batch_size, n_class, h, w])
     print("Pass size check")
 
     # test a random batch, loss should decrease
-    fcn_model = FCNs(pretrained_net=vgg_model, n_class=n_class)
+    fcn_model = FCN8s_bilinear(pretrained_net=vgg_model, n_class=n_class)
     criterion = nn.BCELoss()
     optimizer = optim.SGD(fcn_model.parameters(), lr=1e-3, momentum=0.9)
     input = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
@@ -260,5 +292,5 @@ if __name__ == "__main__":
         output = nn.functional.sigmoid(output)
         loss = criterion(output, y)
         loss.backward()
-        print("iter{}, loss {}".format(iter, loss.data[0]))
+        print("iter{}, loss {}".format(iter, loss.data.item()))
         optimizer.step()
