@@ -281,15 +281,16 @@ if __name__ == "__main__":
     print("Pass size check")
 
     # test a random batch, loss should decrease
-    fcn_model = FCN8s_bilinear(pretrained_net=vgg_model, n_class=n_class)
+    fcn_model = FCN8s(pretrained_net=vgg_model, n_class=n_class)
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(fcn_model.parameters(), lr=1e-3, momentum=0.9)
+    # optimizer = optim.SGD(fcn_model.parameters(), lr=1e-3, momentum=0.9)
+    optimizer = optim.Adam(fcn_model.parameters(), lr=1e-3)
     input = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
     y = torch.autograd.Variable(torch.randn(batch_size, n_class, h, w), requires_grad=False)
     for iter in range(10):
         optimizer.zero_grad()
         output = fcn_model(input)
-        output = nn.functional.sigmoid(output)
+        output = torch.sigmoid(output)
         loss = criterion(output, y)
         loss.backward()
         print("iter{}, loss {}".format(iter, loss.data.item()))
