@@ -134,6 +134,8 @@ def iou(pred, target, n_classes):
         union = union.to(torch.float32)
         if union == 0:
             # if there is no ground truth, do not include in evaluation
+            logger.debug('union == 0, preds: {}, targets: {}, intersection: {}'.format(pred_inds.sum(),\
+                target_inds.sum(), intersection))
             ious[cl] = float('nan')  
         else:
             ious[cl] = float(intersection) / max(union, 1)
