@@ -21,6 +21,7 @@ import time
 import datetime
 import sys
 import os
+import math
 
 import logging
 from logging.config import fileConfig
@@ -37,7 +38,7 @@ logger = logging.getLogger('main')
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
 batch_size = 4
-epochs = 1
+epochs = 2
 lr = 1e-4
 #momentum = 0
 w_decay = 1e-5
@@ -103,7 +104,7 @@ def get_dataset_dataloader(data_set_type, batch_size):
 
 def get_fcn_model(num_classes, use_gpu):
     vgg_model = VGGNet(requires_grad=True, remove_fc=True)
-    fcn_model = FCN8s(pretrained_net=vgg_model, n_class=num_classes)
+    fcn_model = FCN8sScaled(pretrained_net=vgg_model, n_class=num_classes)
 
     if use_gpu:
         ts = time.time()
@@ -134,13 +135,11 @@ def iou(pred, target, n_classes):
         union = union.to(torch.float32)
         if union == 0:
             # if there is no ground truth, do not include in evaluation
-            logger.debug('union == 0, preds: {}, targets: {}, intersection: {}'.format(pred_inds.sum(),\
-                target_inds.sum(), intersection))
             ious[cl] = float('nan')  
         else:
             ious[cl] = float(intersection) / max(union, 1)
 
-    return ious.reshape((1, n_classes)), np.nanmean(ious)
+    return ious.reshape((1, n_classes))
 
 def pixelwise_acc(pred, target):
     correct = (pred == target).sum().to(torch.float32)
@@ -160,17 +159,17 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     best_model_wts = copy.deepcopy(fcn_model.state_dict())
     best_acc = 0.0
 
-    epoch_loss = np.zeros(epochs)
-    epoch_acc = np.zeros(epochs)
-    epoch_iou = np.zeros((epochs, num_classes))
-    epoch_mean_iou = np.zeros(epochs)
+    epoch_loss = np.zeros((2, epochs))
+    epoch_acc = np.zeros((2, epochs))
+    epoch_iou = np.zeros((2, epochs, num_classes))
+    epoch_mean_iou = np.zeros((2, epochs))
 
     for epoch in range(epochs):
         logger.info('Epoch {}/{}'.format(epoch + 1, epochs))
         logger.info('-' * 28)
         
         
-        for phase in ['train', 'val']:
+        for phase_ind, phase in enumerate(['train', 'val']):
             if phase == 'train':
                 fcn_model.train()
                 logger.info(phase)
@@ -180,13 +179,12 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         
             running_loss = 0.0
             running_acc = 0.0
-            running_mean_iou = 0.0
-            running_iou = np.zeros((1, num_classes))
+            num_of_batches = math.ceil(len(data_set[phase]) / batch_size)
+            running_iou = np.zeros((num_of_batches, num_classes))
             
-            batch_counter = 0
-            for imgs, targets in data_loader[phase]:
-                batch_counter += 1
-                logger.debug('Batch {}'.format(batch_counter))
+            
+            for batch_ind, batch in enumerate(data_loader[phase]):
+                imgs, targets = batch
                 imgs = Variable(imgs).float()
                 imgs = imgs.to(device)
                 targets = Variable(targets).type(torch.LongTensor)
@@ -205,25 +203,25 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                         optimizer.step()
 
                 # computes loss and acc for current iteration
-                ious, mean_ious = iou(preds, targets, n_classes)
+                ious = iou(preds, targets, n_classes)
                 
                 running_loss += loss * imgs.size(0)
                 running_acc += pixelwise_acc(preds, targets) * imgs.size(0)
-                running_iou += ious * imgs.size(0)
-                running_mean_iou += mean_ious * imgs.size(0)
-                logger.debug('Batch {} running loss: {}'.format(batch_counter, running_loss))
+                running_iou[batch_ind, :] = ious
+                logger.debug('Batch {} running loss: {}'.format(batch_ind, running_loss))
             
-            epoch_loss[epoch] = running_loss / len(data_set[phase])
-            epoch_acc[epoch] = running_acc / len(data_set[phase])
-            epoch_iou[epoch] = running_iou / len(data_set[phase])
-            epoch_mean_iou[epoch] = running_mean_iou / len(data_set[phase])
+            epoch_loss[phase_ind, epoch] = running_loss / len(data_set[phase])
+            epoch_acc[phase_ind, epoch] = running_acc / len(data_set[phase])
+            epoch_iou[phase_ind, epoch] = np.nanmean(running_iou, axis=0)
+            epoch_mean_iou[phase_ind, epoch] = np.nanmean(epoch_iou[epoch])
 
             
             logger.info('{} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(phase,\
-                epoch_loss[epoch], epoch_acc[epoch], epoch_mean_iou[epoch]))
+                epoch_loss[phase_ind, epoch], epoch_acc[phase_ind, epoch],\
+                epoch_mean_iou[phase_ind, epoch]))
 
-            if phase == 'val' and epoch_acc[epoch] > best_acc:
-                best_acc = epoch_acc[epoch]
+            if phase == 'val' and epoch_acc[phase_ind, epoch] > best_acc:
+                best_acc = epoch_acc[phase_ind, epoch]
                 best_model_wts = copy.deepcopy(fcn_model.state_dict())
         
         print()
