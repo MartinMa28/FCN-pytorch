@@ -7,7 +7,7 @@ from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear
+from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaled
 from Cityscapes_loader import CityScapesDataset
 from CamVid_loader import CamVidDataset
 from VOC_loader import VOCSeg
