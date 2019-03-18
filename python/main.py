@@ -213,7 +213,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
             epoch_loss[phase_ind, epoch] = running_loss / len(data_set[phase])
             epoch_acc[phase_ind, epoch] = running_acc / len(data_set[phase])
             epoch_iou[phase_ind, epoch] = np.nanmean(running_iou, axis=0)
-            epoch_mean_iou[phase_ind, epoch] = np.nanmean(epoch_iou[epoch])
+            epoch_mean_iou[phase_ind, epoch] = np.nanmean(epoch_iou[phase_ind, epoch])
 
             
             logger.info('{} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(phase,\
