@@ -38,7 +38,7 @@ logger = logging.getLogger('main')
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
 batch_size = 4
-epochs = 2
+epochs = 1
 lr = 1e-4
 #momentum = 0
 w_decay = 1e-5
@@ -242,7 +242,12 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
 
 if __name__ == "__main__":
     fcn_model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay)
-    torch.save(fcn_model.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
+    if use_gpu:
+        logger.info('Saved model.module.state_dict')
+        torch.save(fcn_model.module.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
+    else:
+        logger.info('Saved model.state_dict')
+        torch.save(fcn_model.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
 
 
 
