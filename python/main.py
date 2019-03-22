@@ -7,7 +7,7 @@ from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaled
+from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaled, FCN8sScaledOG
 from Cityscapes_loader import CityScapesDataset
 from CamVid_loader import CamVidDataset
 from VOC_loader import VOCSeg
@@ -37,8 +37,8 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 4
-epochs = 1
+batch_size = 8
+epochs = 3
 lr = 1e-4
 #momentum = 0
 w_decay = 1e-5
@@ -104,7 +104,7 @@ def get_dataset_dataloader(data_set_type, batch_size):
 
 def get_fcn_model(num_classes, use_gpu):
     vgg_model = VGGNet(requires_grad=True, remove_fc=True)
-    fcn_model = FCN8sScaled(pretrained_net=vgg_model, n_class=num_classes)
+    fcn_model = FCN8sScaledOG(pretrained_net=vgg_model, n_class=num_classes)
 
     if use_gpu:
         ts = time.time()
