@@ -11,7 +11,7 @@ class _DoubleConv(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -73,3 +73,8 @@ class OutConv(nn.Module):
     def __init__(self, in_channels, class_num):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, class_num, kernel_size=1)
+
+    def forward(self, x):
+        outputs = self.conv(x)
+
+        return outputs
