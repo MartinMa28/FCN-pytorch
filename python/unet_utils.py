@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-class DoubleConv(nn.Module):
+class _DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super(DoubleConv, self).__init__()
+        super(_DoubleConv, self).__init__()
         # [3x3 conv with the 'same' padding, batch norm, relu activation] * 2
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
@@ -21,13 +21,23 @@ class DoubleConv(nn.Module):
         
         return outputs
 
+class InConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(InConv, self).__init__()
+        self.conv = _DoubleConv(in_channels, out_channels)
+
+    def forward(self, x):
+        outputs = self.conv(x)
+
+        return outputs
+
 
 class DownSamp(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DownSamp, self).__init__()
         self.down_samp = nn.Sequential(
             nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
+            _DoubleConv(in_channels, out_channels)
         )
     
     def forward(self, x):
@@ -41,7 +51,7 @@ class UpSamp(nn.Module):
         super(UpSamp, self).__init__()
         self.transposed_conv = nn.ConvTranspose2d(in_channels, in_channels // 2,\
             kernel_size=4, stride=2, padding=1)
-        self.conv = DoubleConv(in_channels, out_channels)
+        self.conv = _DoubleConv(in_channels, out_channels)
     
     def forward(self, x1, x2):
         # x1, x2 follow NCHW pattern
