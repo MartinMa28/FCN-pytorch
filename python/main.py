@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaled, FCN8sScaledOG
+from unet import UNet, UNetWithBilinear
 from Cityscapes_loader import CityScapesDataset
 from CamVid_loader import CamVidDataset
 from VOC_loader import VOCSeg
@@ -37,7 +38,7 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 8
+batch_size = 4
 epochs = 3
 lr = 1e-4
 #momentum = 0
@@ -117,6 +118,17 @@ def get_fcn_model(num_classes, use_gpu):
     
     return fcn_model
 
+def get_unet_model(num_classes, use_gpu):
+    unet = UNet(3, num_classes)
+    if use_gpu:
+        ts = time.time()
+        unet = unet.cuda()
+        num_gpu = list(range(torch.cuda.device_count()))
+        unet = nn.DataParallel(unet, device_ids=num_gpu)
+
+        print("Finish cuda loading, time elapsed {}".format(time.time() - ts))
+    
+    return unet
 
 def time_stamp() -> str:
     ts = time.time()
@@ -148,15 +160,15 @@ def pixelwise_acc(pred, target):
 
 
 def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
-    fcn_model = get_fcn_model(num_classes, use_gpu)
+    model = get_unet_model(num_classes, use_gpu)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(params=fcn_model.parameters(), lr=learning_rate, weight_decay=w_decay)
+    optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=w_decay)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)  # decay LR by a factor of 0.5 every 5 epochs
 
     data_set, data_loader = get_dataset_dataloader(data_set_type, batch_size)
 
     since = time.time()
-    best_model_wts = copy.deepcopy(fcn_model.state_dict())
+    best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
     epoch_loss = np.zeros((2, epochs))
@@ -171,10 +183,10 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         
         for phase_ind, phase in enumerate(['train', 'val']):
             if phase == 'train':
-                fcn_model.train()
+                model.train()
                 logger.info(phase)
             else:
-                fcn_model.eval()
+                model.eval()
                 logger.info(phase)
         
             running_loss = 0.0
@@ -194,7 +206,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = fcn_model(imgs)
+                    outputs = model(imgs)
                     loss = criterion(outputs, targets)
                     preds = torch.argmax(outputs, dim=1)
                     
@@ -222,7 +234,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
 
             if phase == 'val' and epoch_acc[phase_ind, epoch] > best_acc:
                 best_acc = epoch_acc[phase_ind, epoch]
-                best_model_wts = copy.deepcopy(fcn_model.state_dict())
+                best_model_wts = copy.deepcopy(model.state_dict())
         
         print()
     
@@ -231,23 +243,23 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
         int(time_elapsed) % 60))
     
     # load best model weights
-    fcn_model.load_state_dict(best_model_wts)
+    model.load_state_dict(best_model_wts)
 
     # save numpy results
     np.save(os.path.join(score_dir, 'epoch_accuracy'), epoch_acc)
     np.save(os.path.join(score_dir, 'epoch_mean_iou'), epoch_mean_iou)
     np.save(os.path.join(score_dir, 'epoch_iou'), epoch_iou)
 
-    return fcn_model
+    return model
 
 if __name__ == "__main__":
-    fcn_model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay)
+    model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay)
     if use_gpu:
         logger.info('Saved model.module.state_dict')
-        torch.save(fcn_model.module.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
+        torch.save(model.module.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
     else:
         logger.info('Saved model.state_dict')
-        torch.save(fcn_model.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
+        torch.save(model.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
 
 
 
