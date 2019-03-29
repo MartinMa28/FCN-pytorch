@@ -12,6 +12,7 @@ from unet import UNet, UNetWithBilinear
 from Cityscapes_loader import CityScapesDataset
 from CamVid_loader import CamVidDataset
 from VOC_loader import VOCSeg
+from VOC_Aug_loader import VOCSegAug
 from VOC_loader import RandomCrop, RandomHorizontalFlip, ToTensor, CenterCrop, NormalizeVOC
 from torchvision import transforms
 import copy

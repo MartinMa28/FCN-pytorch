@@ -4,6 +4,7 @@
 CamVid/
 Cityscapes/
 VOC/
+VOCAug/
 scores/
 logs/
 .vscode
