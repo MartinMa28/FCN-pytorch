@@ -158,7 +158,7 @@ class RandomCrop():
         # convert PIL.Image to np.ndarray
         img = np.asarray(img)
         target = np.asarray(target)
-        if img.shape[0] < 224 or img.shape[1] < 224:
+        if img.shape[0] <= 224 or img.shape[1] <= 224:
             # if this image is smaller than 224 x 224, discards it by zeroing out
             # this image and its dense labels
             img = np.zeros((224, 224, 3))
@@ -170,7 +170,7 @@ class RandomCrop():
         h, w = img.shape[:2]
         
         new_h, new_w = self.output_size
-        
+
         top = np.random.randint(0, h - new_h)
         left = np.random.randint(0, w - new_w)
         
