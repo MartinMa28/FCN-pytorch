@@ -50,10 +50,11 @@ configs = "FCNs-CrossEntropyLoss_batch{}_training_epochs{}_Adam_scheduler-step{}
 print('Configs: ')
 print(configs)
 
-if sys.argv[1] == 'VOC':
-    data_set_type = 'VOC'
-else:
-    data_set_type = 'Cityscpaes'
+data_set_type = sys.argv[1]
+# if sys.argv[1] == 'VOC':
+#     data_set_type = 'VOC'
+# else:
+#     data_set_type = 'VOCAug'
 
 # create dir for model
 model_dir = 'models'
@@ -72,29 +73,34 @@ pixel_scores = np.zeros(epochs)
 # global variables
 
 def get_dataset_dataloader(data_set_type, batch_size):
-    if data_set_type == 'VOC':
-        data_transforms = {
-            'train': transforms.Compose([
-                RandomCrop(224),
-                RandomHorizontalFlip(),
-                ToTensor(),
-                NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ]),
+    data_transforms = {
+        'train': transforms.Compose([
+            RandomCrop(224),
+            RandomHorizontalFlip(),
+            ToTensor(),
+            NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
 
-            'val': transforms.Compose([
-                CenterCrop(224),
-                ToTensor(),
-                NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        'val': transforms.Compose([
+            CenterCrop(224),
+            ToTensor(),
+            NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+    }
+    
+    if data_set_type == 'VOC':
+        data_set = {
+            phase: VOCSeg('VOC/', '2012', image_set=phase, download=False,\
+            transform=data_transforms[phase]) 
+            for phase in ['train', 'val']
+            }
+    elif data_set_type == 'VOCAug':
+        data_set = {
+            phase: VOCSegAug('VOCAug/', data_set=phase, transform=data_transforms[phase])
+            for phase in ['train', 'val']
         }
     else:
-        data_transforms = {}
-
-    data_set = {
-        phase: VOCSeg('VOC/', '2012', image_set=phase, download=False,\
-        transform=data_transforms[phase]) 
-        for phase in ['train', 'val']
-        }
+        raise ValueError('Dateset must be VOC or VOCAug!')
     
 
     data_loader = {
@@ -161,7 +167,7 @@ def pixelwise_acc(pred, target):
 
 
 def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
-    model = get_unet_model(num_classes, use_gpu)
+    model = get_fcn_model(num_classes, use_gpu)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=w_decay)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)  # decay LR by a factor of 0.5 every 5 epochs

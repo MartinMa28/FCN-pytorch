@@ -14,7 +14,7 @@ class VOCSegAug(Dataset):
         base_dir = os.path.join(self.root_dir, 'dataset')
         img_dir = os.path.join(base_dir, 'img')
         target_dir = os.path.join(base_dir, 'cls')
-        data_set_txt = self.data_set.strip() + '.txt'
+        data_set_txt = os.path.join(base_dir, self.data_set.strip() + '.txt')
         
         if not os.path.exists(data_set_txt):
             raise ValueError('Wrong data_set entered! Please use "train" or "val".')
