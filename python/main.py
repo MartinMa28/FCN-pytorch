@@ -51,16 +51,6 @@ print('Configs: ')
 print(configs)
 
 data_set_type = sys.argv[1]
-# if sys.argv[1] == 'VOC':
-#     data_set_type = 'VOC'
-# else:
-#     data_set_type = 'VOCAug'
-
-# create dir for model
-model_dir = 'models'
-if not os.path.exists(model_dir):
-    os.makedirs(model_dir)
-model_path = os.path.join(model_dir, configs)
 
 score_dir = os.path.join("scores", configs)
 if not os.path.exists(score_dir):
