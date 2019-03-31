@@ -51,6 +51,8 @@ print('Configs: ')
 print(configs)
 
 data_set_type = sys.argv[1]
+if data_set_type not in ['VOC', 'VOCAug']:
+    raise ValueError('Only supports Pascal VOC and augmented Pascal VOC!')
 
 score_dir = os.path.join("scores", configs)
 if not os.path.exists(score_dir):
