@@ -8,7 +8,8 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaled, FCN8sScaledOG
-from unet import UNet, UNetWithBilinear
+from unet import UNet, UNetWithBilinear, UNetWithVGGEncoder
+from vgg_encoder import VGGEncoder
 from Cityscapes_loader import CityScapesDataset
 from CamVid_loader import CamVidDataset
 from VOC_loader import VOCSeg
@@ -118,7 +119,8 @@ def get_fcn_model(num_classes, use_gpu):
     return fcn_model
 
 def get_unet_model(num_classes, use_gpu):
-    unet = UNet(3, num_classes)
+    vgg_model = VGGEncoder(pretrained=True, requires_grad=True, remove_fc=True)
+    unet = UNetWithVGGEncoder(vgg_model, num_classes)
     if use_gpu:
         ts = time.time()
         unet = unet.cuda()
@@ -159,7 +161,7 @@ def pixelwise_acc(pred, target):
 
 
 def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
-    model = get_fcn_model(num_classes, use_gpu)
+    model = get_unet_model(num_classes, use_gpu)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=w_decay)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)  # decay LR by a factor of 0.5 every 5 epochs
