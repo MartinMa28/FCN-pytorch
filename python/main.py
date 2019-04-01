@@ -39,7 +39,7 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 4
+batch_size = 8
 epochs = 3
 lr = 1e-4
 #momentum = 0
@@ -136,9 +136,9 @@ def time_stamp() -> str:
 
 # Borrows and modifies iou() from https://github.com/Kaixhin/FCN-semantic-segmentation/blob/master/main.py
 # Calculates class intersections over unions    
-def iou(pred, target, n_classes):
-    ious = np.zeros(n_classes)
-    for cl in range(n_classes):
+def iou(pred, target, num_classes):
+    ious = np.zeros(num_classes)
+    for cl in range(num_classes):
         pred_inds = (pred == cl)
         target_inds = (target == cl)
         intersection = pred_inds[target_inds].sum().to(torch.float32)
@@ -150,7 +150,7 @@ def iou(pred, target, n_classes):
         else:
             ious[cl] = float(intersection) / max(union, 1)
 
-    return ious.reshape((1, n_classes))
+    return ious.reshape((1, num_classes))
 
 def pixelwise_acc(pred, target):
     correct = (pred == target).sum().to(torch.float32)
@@ -214,7 +214,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                         optimizer.step()
 
                 # computes loss and acc for current iteration
-                ious = iou(preds, targets, n_classes)
+                ious = iou(preds, targets, num_classes)
                 
                 running_loss += loss * imgs.size(0)
                 running_acc += pixelwise_acc(preds, targets) * imgs.size(0)
