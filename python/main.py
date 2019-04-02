@@ -43,11 +43,11 @@ n_classes = 20 + 1
 batch_size = 8
 epochs = 3
 lr = 1e-4
-#momentum = 0
-w_decay = 1e-5
+momentum = 0.9
+w_decay = 5e-4
 step_size = 5
 gamma = 0.5
-configs = "FCNs-CrossEntropyLoss_batch{}_training_epochs{}_Adam_scheduler-step{}-gamma{}_lr{}_w_decay{}".format(batch_size, epochs, step_size, gamma, lr, w_decay)
+configs = "FCNs-CrossEntropyLoss_batch{}_training_epochs{}_Adam_scheduler-step{}-gamma{}_lr{}_w_decay{}_momentum{}".format(batch_size, epochs, step_size, gamma, lr, w_decay, momentum)
 print('Configs: ')
 print(configs)
 
@@ -160,10 +160,11 @@ def pixelwise_acc(pred, target):
     return correct / total
 
 
-def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
-    model = get_unet_model(num_classes, use_gpu)
+def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay, momentum):
+    model = get_fcn_model(num_classes, use_gpu)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=w_decay)
+    #optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=w_decay)
+    optimizer = optim.SGD(params=model.parameters(), lr=learning_rate, weight_decay=w_decay, momentum=momentum)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)  # decay LR by a factor of 0.5 every 5 epochs
 
     data_set, data_loader = get_dataset_dataloader(data_set_type, batch_size)
@@ -254,7 +255,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     return model
 
 if __name__ == "__main__":
-    model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay)
+    model = train(data_set_type, n_classes, batch_size, epochs, use_gpu, lr, w_decay, momentum)
     if use_gpu:
         logger.info('Saved model.module.state_dict')
         torch.save(model.module.state_dict(), os.path.join(score_dir, 'trained_model.pt'))
