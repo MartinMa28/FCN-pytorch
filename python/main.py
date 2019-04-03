@@ -42,10 +42,10 @@ logger = logging.getLogger('main')
 n_classes = 20 + 1
 batch_size = 8
 epochs = 3
-lr = 1e-4
+lr = 7e-3
 #momentum = 0
 w_decay = 1e-5
-step_size = 5
+step_size = 10
 gamma = 0.5
 configs = "FCNs-CrossEntropyLoss_batch{}_training_epochs{}_Adam_scheduler-step{}-gamma{}_lr{}_w_decay{}".format(batch_size, epochs, step_size, gamma, lr, w_decay)
 print('Configs: ')
@@ -161,9 +161,9 @@ def pixelwise_acc(pred, target):
 
 
 def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
-    model = get_unet_model(num_classes, use_gpu)
+    model = get_fcn_model(num_classes, use_gpu)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=w_decay)
+    optimizer = optim.RMSprop(params=model.parameters(), lr=learning_rate, weight_decay=w_decay, momentum=0)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)  # decay LR by a factor of 0.5 every 5 epochs
 
     data_set, data_loader = get_dataset_dataloader(data_set_type, batch_size)
