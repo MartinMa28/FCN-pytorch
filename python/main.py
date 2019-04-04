@@ -42,7 +42,7 @@ logger = logging.getLogger('main')
 n_classes = 20 + 1
 batch_size = 8
 epochs = 3
-lr = 7e-3
+lr = 1e-3
 #momentum = 0
 w_decay = 1e-5
 step_size = 10
@@ -104,7 +104,7 @@ def get_dataset_dataloader(data_set_type, batch_size):
     return data_set, data_loader
 
 def get_fcn_model(num_classes, use_gpu):
-    vgg_model = VGGNet(requires_grad=True, remove_fc=True)
+    vgg_model = VGGNet(requires_grad=True, remove_fc=True, batch_norm=True)
     fcn_model = FCN8sScaledOG(pretrained_net=vgg_model, n_class=num_classes)
 
     if use_gpu:

@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import models
 from torchvision.models.vgg import VGG
-
+import torch.utils.model_zoo as model_zoo
 
 class FCN32s(nn.Module):
 
@@ -253,12 +253,21 @@ class FCNs(nn.Module):
 
 
 class VGGNet(VGG):
-    def __init__(self, pretrained=True, model='vgg16', requires_grad=True, remove_fc=True, show_params=False):
-        super().__init__(make_layers(cfg[model]))
-        self.ranges = ranges[model]
+    def __init__(self, pretrained=True, model='vgg16', requires_grad=True, remove_fc=True, show_params=False, batch_norm=False):
+        super().__init__(make_layers(cfg[model], batch_norm=batch_norm))
+        self.ranges = ranges
+        self.model_urls = {
+            'vgg16': 'https://download.pytorch.org/models/vgg16-397923af.pth',
+            'vgg16_bn': 'https://download.pytorch.org/models/vgg16_bn-6c64b313.pth'
+        }
+        if batch_norm:
+            self.model = 'vgg16_bn'
+        else:
+            self.model = 'vgg16'
 
         if pretrained:
-            exec("self.load_state_dict(models.%s(pretrained=True).state_dict())" % model)
+            #exec("self.load_state_dict(models.%s(pretrained=True).state_dict())" % model)
+            self.load_state_dict(model_zoo.load_url(self.model_urls[self.model]))
 
         if not requires_grad:
             for param in super().parameters():
@@ -275,8 +284,8 @@ class VGGNet(VGG):
         output = {}
 
         # get the output of each maxpooling layer (5 maxpool in VGG net)
-        for idx in range(len(self.ranges)):
-            for layer in range(self.ranges[idx][0], self.ranges[idx][1]):
+        for idx in range(len(self.ranges[self.model])):
+            for layer in range(self.ranges[self.model][idx][0], self.ranges[self.model][idx][1]):
                 x = self.features[layer](x)
             output["x%d"%(idx+1)] = x
 
@@ -287,6 +296,7 @@ ranges = {
     'vgg11': ((0, 3), (3, 6),  (6, 11),  (11, 16), (16, 21)),
     'vgg13': ((0, 5), (5, 10), (10, 15), (15, 20), (20, 25)),
     'vgg16': ((0, 5), (5, 10), (10, 17), (17, 24), (24, 31)),
+    'vgg16_bn': ((0, 7), (7, 14), (14, 24), (24, 34), (34, 44)),
     'vgg19': ((0, 5), (5, 10), (10, 19), (19, 28), (28, 37))
 }
 
@@ -318,7 +328,7 @@ if __name__ == "__main__":
     batch_size, n_class, h, w = 10, 20, 224, 224
 
     # test output size
-    vgg_model = VGGNet(requires_grad=True)
+    vgg_model = VGGNet(requires_grad=True, batch_norm=True)
     input = torch.autograd.Variable(torch.randn(batch_size, 3, 224, 224))
     output = vgg_model(input)
     assert output['x5'].size() == torch.Size([batch_size, 512, 7, 7])
