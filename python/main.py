@@ -44,7 +44,7 @@ batch_size = 8
 epochs = 3
 lr = 1e-4
 #momentum = 0
-w_decay = 2 ** (-4)
+w_decay = 1e-5
 step_size = 10
 gamma = 0.5
 configs = "FCNs-CrossEntropyLoss_batch{}_training_epochs{}_Adam_scheduler-step{}-gamma{}_lr{}_w_decay{}".format(batch_size, epochs, step_size, gamma, lr, w_decay)
@@ -104,8 +104,8 @@ def get_dataset_dataloader(data_set_type, batch_size):
     return data_set, data_loader
 
 def get_fcn_model(num_classes, use_gpu):
-    vgg_model = VGGNet(requires_grad=True, remove_fc=True, batch_norm=True)
-    fcn_model = FCN8sScaledOG(pretrained_net=vgg_model, n_class=num_classes)
+    vgg_model = VGGNet(requires_grad=True, remove_fc=True, batch_norm=False)
+    fcn_model = FCN8sScaled(pretrained_net=vgg_model, n_class=num_classes)
 
     if use_gpu:
         ts = time.time()
