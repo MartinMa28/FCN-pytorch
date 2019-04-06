@@ -106,35 +106,35 @@ class VOCSeg(datasets.VOCSegmentation):
 
 
 # callable classes to transform both images and their dense labels (target)
-class Rescale():
-    """
-    Rescale the image in a sample to a given size.
-    Args: output_size (tuple or int): Desired output size. If tuple, output is
-            matched to output_size. If int, smaller of image edges is matched
-            to output_size keeping aspect ratio the same.
-    """
-    def __init__(self, output_size):
-        assert isinstance(output_size, (int, tuple))
-        self.output_size = output_size
+# class Rescale():
+#     """
+#     Rescale the image in a sample to a given size.
+#     Args: output_size (tuple or int): Desired output size. If tuple, output is
+#             matched to output_size. If int, smaller of image edges is matched
+#             to output_size keeping aspect ratio the same.
+#     """
+#     def __init__(self, output_size):
+#         assert isinstance(output_size, (int, tuple))
+#         self.output_size = output_size
     
-    def __call__(self, sample):
-        # sample: (img, target)
-        img, target = sample
-        assert img.size == target.size
-        h, w = img.size
+#     def __call__(self, sample):
+#         # sample: (img, target)
+#         img, target = sample
+#         assert img.size == target.size
+#         h, w = img.size
         
-        if isinstance(self.output_size, int):
-            if h > w:
-                new_h, new_w = self.output_size * h / w, self.output_size
-            else:
-                new_h, new_w = self.output_size, self.output_size * w / h
-        else:
-            new_h, new_w = self.output_size
+#         if isinstance(self.output_size, int):
+#             if h > w:
+#                 new_h, new_w = self.output_size * h / w, self.output_size
+#             else:
+#                 new_h, new_w = self.output_size, self.output_size * w / h
+#         else:
+#             new_h, new_w = self.output_size
         
-        img = Image.resize((new_h, new_w))
-        target = Image.resize((new_h, new_w))
+#         img = Image.resize((new_h, new_w))
+#         target = Image.resize((new_h, new_w))
         
-        return img, target
+#         return img, target
 
 class RandomCrop():
     """
@@ -156,26 +156,45 @@ class RandomCrop():
     def __call__(self, sample):
         img, target = sample
         # convert PIL.Image to np.ndarray
-        img = np.asarray(img)
-        target = np.asarray(target)
-        if img.shape[0] <= 224 or img.shape[1] <= 224:
-            # if this image is smaller than 224 x 224, discards it by zeroing out
-            # this image and its dense labels
-            img = np.zeros((224, 224, 3))
-            target = np.zeros((224, 224))
-
-            return img, target
-        
-        assert img.shape[:2] == target.shape[:2]
-        h, w = img.shape[:2]
-        
+        img = np.array(img)
+        target = np.array(target)
         new_h, new_w = self.output_size
-
-        top = np.random.randint(0, h - new_h)
-        left = np.random.randint(0, w - new_w)
+        
+        # zero-pad if the width or height is less than the output_size
+        if img.shape[0] < new_h:
+            # zero-pad vertically
+            pad_width = new_h - img.shape[0]
+            up_pad = pad_width // 2
+            bottom_pad = pad_width - up_pad
+            img = np.pad(img, ((up_pad, bottom_pad), (0, 0), (0, 0)), 'constant', constant_values=(0, 0))
+            target = np.pad(target, ((up_pad, bottom_pad), (0, 0)), 'constant', constant_values=(0, 0))
+            
+        if img.shape[1] < new_w:
+            # zero-pad horizontally
+            pad_width = new_w - img.shape[1]
+            left_pad = pad_width // 2
+            right_pad = pad_width - left_pad
+            img = np.pad(img, ((0, 0), (left_pad, right_pad), (0, 0)), 'constant', constant_values=(0, 0))
+            target = np.pad(target, ((0, 0), (left_pad, right_pad)), 'constant', constant_values=(0, 0))
+        
+        
+        h, w = img.shape[:2]
+        if h > new_h and w > new_w:
+            top = np.random.randint(0, h - new_h)
+            left = np.random.randint(0, w - new_w)
+        elif h == new_h and w > new_w:
+            top = 0
+            left = np.random.randint(0, w - new_w)
+        elif h > new_h and w == new_w:
+            top = np.random.randint(0, h - new_h)
+            left = 0
+        else:
+            top = 0
+            left = 0
         
         img = img[top: top + new_h, left: left + new_w]
         target = target[top: top + new_h, left: left + new_w]
+        assert img.shape[:2] == target.shape
         
         return img, target
 
@@ -200,28 +219,40 @@ class CenterCrop():
     def __call__(self, sample):
         img, target = sample
         # convert PIL Image to numpy.ndarray
-        img = np.asarray(img)
-        target = np.asarray(target)
-        if img.shape[0] < 224 or img.shape[1] < 224:
-            # if this image is smaller than 224 x 224, discards it by zeroing out
-            # this image and its dense labels
-            img = np.zeros((224, 224, 3))
-            target = np.zeros((224, 224))
-
-            return img, target
-
-        assert img.shape[:2] == target.shape[:2]
-        h, w = img.shape[:2]
-        
+        img = np.array(img)
+        target = np.array(target)
         new_h, new_w = self.output_size
         
-        top = int((h - new_h) / 2)
-        left = int((w - new_w) / 2)
+        # zero-pad if the width or height is less than the output_size
+        if img.shape[0] < new_h:
+            # zero-pad vertically
+            pad_width = new_h - img.shape[0]
+            up_pad = pad_width // 2
+            bottom_pad = pad_width - up_pad
+            img = np.pad(img, ((up_pad, bottom_pad), (0, 0), (0, 0)), 'constant', constant_values=(0, 0))
+            target = np.pad(target, ((up_pad, bottom_pad), (0, 0)), 'constant', constant_values=(0, 0))
+            
+        if img.shape[1] < new_w:
+            # zero-pad horizontally
+            pad_width = new_w - img.shape[1]
+            left_pad = pad_width // 2
+            right_pad = pad_width - left_pad
+            img = np.pad(img, ((0, 0), (left_pad, right_pad), (0, 0)), 'constant', constant_values=(0, 0))
+            target = np.pad(target, ((0, 0), (left_pad, right_pad)), 'constant', constant_values=(0, 0))
+
+            
+        h, w = img.shape[:2]
+        
+        top = (h - new_h) // 2
+        left = (w - new_w) // 2
         
         img = img[top: top + new_h, left: left + new_w]
         target = target[top: top + new_h, left: left + new_w]
+        assert img.shape[:2] == target.shape[:2]
         
         return img, target
+
+
 
     
 class RandomHorizontalFlip():
@@ -254,10 +285,8 @@ class ToTensor():
         # torch Tensor image: C x H x W
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img).float()
-        #target = torch.from_numpy(target).to(torch.int64)
+        
         target = torch.from_numpy(target).float()
-        # if isinstance(img, torch.ByteTensor):
-        #     img = img.to(dtype=torch.float32)
         
         return img, target
 
@@ -282,4 +311,5 @@ class NormalizeVOC():
             (Tensor, Tensor): Normalized Tensor image and its dense labels.
         """
         img, target = sample
+        img = torch.div(img, 255)
         return F.normalize(img, self.mean, self.std, self.inplace), target

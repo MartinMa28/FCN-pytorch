@@ -7,7 +7,7 @@ from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaled, FCN8sScaledOG
+from fcn import VGGNet, FCN32s, FCN16s, FCN8s, FCNs, FCN8s_bilinear, FCN8sScaledBN, FCN8sScaledOGBN
 from unet import UNet, UNetWithBilinear, UNetWithVGGEncoder
 from vgg_encoder import VGGEncoder
 from Cityscapes_loader import CityScapesDataset
@@ -40,7 +40,7 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 8
+batch_size = 2
 epochs = 3
 lr = 1e-4
 #momentum = 0
@@ -68,14 +68,14 @@ pixel_scores = np.zeros(epochs)
 def get_dataset_dataloader(data_set_type, batch_size):
     data_transforms = {
         'train': transforms.Compose([
-            RandomCrop(224),
+            RandomCrop(512),
             RandomHorizontalFlip(),
             ToTensor(),
             NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
 
         'val': transforms.Compose([
-            CenterCrop(224),
+            CenterCrop(512),
             ToTensor(),
             NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
@@ -104,8 +104,8 @@ def get_dataset_dataloader(data_set_type, batch_size):
     return data_set, data_loader
 
 def get_fcn_model(num_classes, use_gpu):
-    vgg_model = VGGNet(requires_grad=True, remove_fc=True, batch_norm=False)
-    fcn_model = FCN8sScaledOG(pretrained_net=vgg_model, n_class=num_classes)
+    vgg_model = VGGNet(requires_grad=True, remove_fc=True, batch_norm=True)
+    fcn_model = FCN8sScaledOGBN(pretrained_net=vgg_model, n_class=num_classes)
 
     if use_gpu:
         ts = time.time()
