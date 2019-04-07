@@ -139,13 +139,13 @@ class FCN8sScaledBN(nn.Module):
         x3 = output['x3']  # size=(N, 256, x.H/8,  x.W/8)
 
         # x4 and x3 are scaled by the factor of 0.01 and 0.0001 respectively
-        score = self.relu(self.deconv1(x5))               # size=(N, 512, x.H/16, x.W/16)
-        score = self.bn1(score + x4 * 0.01)               # element-wise add, size=(N, 512, x.H/16, x.W/16)
-        score = self.relu(self.deconv2(score))            # size=(N, 256, x.H/8, x.W/8)
-        score = self.bn2(score + x3 * 0.0001)             # element-wise add, size=(N, 256, x.H/8, x.W/8)
-        score = self.bn3(self.relu(self.deconv3(score)))  # size=(N, 128, x.H/4, x.W/4)
-        score = self.bn4(self.relu(self.deconv4(score)))  # size=(N, 64, x.H/2, x.W/2)
-        score = self.bn5(self.relu(self.deconv5(score)))  # size=(N, 32, x.H, x.W)
+        score = self.relu(self.bn1(self.deconv1(x5)))     # size=(N, 512, x.H/16, x.W/16)
+        score = score + x4 * 0.01                         # element-wise add, size=(N, 512, x.H/16, x.W/16)
+        score = self.relu(self.bn2(self.deconv2(score)))  # size=(N, 256, x.H/8, x.W/8)
+        score = score + x3 * 0.0001                       # element-wise add, size=(N, 256, x.H/8, x.W/8)
+        score = self.relu(self.bn3(self.deconv3(score)))  # size=(N, 128, x.H/4, x.W/4)
+        score = self.relu(self.bn4(self.deconv4(score)))  # size=(N, 64, x.H/2, x.W/2)
+        score = self.relu(self.bn5(self.deconv5(score)))  # size=(N, 32, x.H, x.W)
         score = self.classifier(score)                    # size=(N, n_class, x.H/1, x.W/1)
 
         return score  # size=(N, n_class, x.H/1, x.W/1)
@@ -206,11 +206,11 @@ class FCN8sScaledOGBN(nn.Module):
         x3 = output['x3']  # size=(N, 256, x.H/8,  x.W/8)
 
         # x4 and x3 are scaled by the factor of 0.01 and 0.0001 respectively
-        score = self.relu(self.deconv1(x5))
-        score = self.bn1(score + self.conv_x4(x4 * 0.01))
-        score = self.relu(self.deconv2(score))
-        score = self.bn2(score + self.conv_x3(x3 * 0.0001))
-        score = self.bn3(self.relu(self.deconv3(score)))
+        score = self.relu(self.bn1(self.deconv1(x5)))
+        score = score + self.conv_x4(x4 * 0.01)
+        score = self.relu(self.bn2(self.deconv2(score)))
+        score = score + self.conv_x3(x3 * 0.0001)
+        score = self.relu(self.bn3(self.deconv3(score)))
 
         return score  # size=(N, n_class, x.H/1, x.W/1)
 
@@ -387,13 +387,13 @@ def make_layers(cfg, batch_norm=False):
 
 
 if __name__ == "__main__":
-    batch_size, n_class, h, w = 10, 20, 224, 224
+    batch_size, n_class, h, w = 2, 20, 512, 512
 
     # test output size
-    vgg_model = VGGNet(requires_grad=True)
-    input = torch.autograd.Variable(torch.randn(batch_size, 3, 224, 224))
-    output = vgg_model(input)
-    assert output['x5'].size() == torch.Size([batch_size, 512, 7, 7])
+    vgg_model = VGGNet(requires_grad=True, batch_norm=True)
+    inp = torch.autograd.Variable(torch.randn(batch_size, 3, 512, 512))
+    output = vgg_model(inp)
+    assert output['x5'].size() == torch.Size([batch_size, 512, 16, 16])
 
     # fcn_model = FCN32s(pretrained_net=vgg_model, n_class=n_class)
     # input = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
@@ -425,32 +425,32 @@ if __name__ == "__main__":
     output = fcn_model(inp)
     assert output.size() == torch.Size([batch_size, n_class, h, w])
 
-    fcn_model = FCN8sScaledOG(pretrained_net=vgg_model, n_class=n_class)
-    inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
-    output = fcn_model(inp)
-    assert output.size() == torch.Size([batch_size, n_class, h, w])
+    # fcn_model = FCN8sScaledOG(pretrained_net=vgg_model, n_class=n_class)
+    # inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
+    # output = fcn_model(inp)
+    # assert output.size() == torch.Size([batch_size, n_class, h, w])
 
     fcn_model = FCN8sScaledBN(pretrained_net=vgg_model, n_class=n_class)
     inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
     output = fcn_model(inp)
     assert output.size() == torch.Size([batch_size, n_class, h, w])
 
-    fcn_model = FCN8sScaled(pretrained_net=vgg_model, n_class=n_class)
-    inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
-    output = fcn_model(inp)
-    assert output.size() == torch.Size([batch_size, n_class, h, w])
+    # fcn_model = FCN8sScaled(pretrained_net=vgg_model, n_class=n_class)
+    # inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
+    # output = fcn_model(inp)
+    # assert output.size() == torch.Size([batch_size, n_class, h, w])
     print("Pass size check")
 
     # test a random batch, loss should decrease
-    fcn_model = FCN8sScaled(pretrained_net=vgg_model, n_class=n_class)
+    fcn_model = FCN8sScaledOGBN(pretrained_net=vgg_model, n_class=n_class)
     criterion = nn.BCELoss()
     # optimizer = optim.SGD(fcn_model.parameters(), lr=1e-3, momentum=0.9)
     optimizer = optim.Adam(fcn_model.parameters(), lr=1e-4)
-    input = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
+    inp = torch.autograd.Variable(torch.randn(batch_size, 3, h, w))
     y = torch.autograd.Variable(torch.randn(batch_size, n_class, h, w), requires_grad=False)
     for iter in range(10):
         optimizer.zero_grad()
-        output = fcn_model(input)
+        output = fcn_model(inp)
         output = torch.sigmoid(output)
         loss = criterion(output, y)
         loss.backward()
