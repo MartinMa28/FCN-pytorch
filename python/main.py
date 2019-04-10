@@ -40,7 +40,7 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 2
+batch_size = 8
 epochs = 3
 lr = 1e-4
 #momentum = 0
@@ -68,16 +68,16 @@ pixel_scores = np.zeros(epochs)
 def get_dataset_dataloader(data_set_type, batch_size):
     data_transforms = {
         'train': transforms.Compose([
-            RandomCrop(512),
+            RandomCrop(256),
             RandomHorizontalFlip(),
             ToTensor(),
-            # NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
 
         'val': transforms.Compose([
-            CenterCrop(512),
+            CenterCrop(256),
             ToTensor(),
-            # NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
     
