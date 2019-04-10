@@ -71,13 +71,13 @@ def get_dataset_dataloader(data_set_type, batch_size):
             RandomCrop(512),
             RandomHorizontalFlip(),
             ToTensor(),
-            NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            # NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
 
         'val': transforms.Compose([
             CenterCrop(512),
             ToTensor(),
-            NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            # NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
     

@@ -275,7 +275,10 @@ class RandomHorizontalFlip():
 
     
 class ToTensor():
-    """Convert ndarrays in sample to Tensors."""
+    """
+    Convert numpy ndarrays (HWC) in the range of [0 - 255] to Tensors (CHW)
+    in the range of [0.0 - 1.0]. 
+    """
     
     def __call__(self, sample):
         img, target = sample
@@ -285,6 +288,7 @@ class ToTensor():
         # torch Tensor image: C x H x W
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img).float()
+        img = torch.div(img, 255)
         
         target = torch.from_numpy(target).float()
         
@@ -311,5 +315,5 @@ class NormalizeVOC():
             (Tensor, Tensor): Normalized Tensor image and its dense labels.
         """
         img, target = sample
-        img = torch.div(img, 255)
+        
         return F.normalize(img, self.mean, self.std, self.inplace), target
