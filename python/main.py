@@ -17,6 +17,7 @@ from VOC_Aug_loader import VOCSegAug
 from VOC_loader import RandomCrop, RandomHorizontalFlip, ToTensor, CenterCrop, NormalizeVOC
 from torchvision import transforms
 import copy
+from metrics import Evaluator
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -40,7 +41,7 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 8
+batch_size = 2
 epochs = 3
 lr = 1e-4
 #momentum = 0
@@ -68,14 +69,14 @@ pixel_scores = np.zeros(epochs)
 def get_dataset_dataloader(data_set_type, batch_size):
     data_transforms = {
         'train': transforms.Compose([
-            RandomCrop(256),
+            RandomCrop(512),
             RandomHorizontalFlip(),
             ToTensor(),
             NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
 
         'val': transforms.Compose([
-            CenterCrop(256),
+            CenterCrop(512),
             ToTensor(),
             NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
@@ -176,6 +177,7 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
     epoch_acc = np.zeros((2, epochs))
     epoch_iou = np.zeros((2, epochs, num_classes))
     epoch_mean_iou = np.zeros((2, epochs))
+    evaluator = Evaluator(num_classes)
 
     for epoch in range(epochs):
         logger.info('Epoch {}/{}'.format(epoch + 1, epochs))
@@ -189,7 +191,8 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
             else:
                 model.eval()
                 logger.info(phase)
-        
+            
+            evaluator.reset()
             running_loss = 0.0
             running_acc = 0.0
             num_of_batches = math.ceil(len(data_set[phase]) / batch_size)
@@ -222,16 +225,27 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                 running_acc += pixelwise_acc(preds, targets) * imgs.size(0)
                 running_iou[batch_ind, :] = ious
                 logger.debug('Batch {} running loss: {}'.format(batch_ind, running_loss))
+
+                # test the iou and pixelwise accuracy using evaluator
+                preds = preds.numpy()
+                targets = targets.numpy()
+                evaluator.add_batch(targets, preds)
+
             
             epoch_loss[phase_ind, epoch] = running_loss / len(data_set[phase])
             epoch_acc[phase_ind, epoch] = running_acc / len(data_set[phase])
             epoch_iou[phase_ind, epoch] = np.nanmean(running_iou, axis=0)
             epoch_mean_iou[phase_ind, epoch] = np.nanmean(epoch_iou[phase_ind, epoch])
-
             
-            logger.info('{} loss: {:.4f}, acc: {:.4f}, mean iou: {}'.format(phase,\
+            logger.info('{} loss: {:.4f}, acc: {:.4f}, mean iou: {:.6f}'.format(phase,\
                 epoch_loss[phase_ind, epoch], epoch_acc[phase_ind, epoch],\
                 epoch_mean_iou[phase_ind, epoch]))
+
+            eva_pixel_acc = evaluator.Pixel_Accuracy()
+            eva_pixel_acc_class = evaluator.Pixel_Accuracy_Class()
+            eva_mIOU = evaluator.Mean_Intersection_over_Union()
+            logger.info('{} - Evaluator - acc: {:.4f}, acc class: {:.4f}, mean iou: {:.6f}'.format(phase,\
+                eva_pixel_acc, eva_pixel_acc_class, eva_mIOU))
 
             if phase == 'val' and epoch_acc[phase_ind, epoch] > best_acc:
                 best_acc = epoch_acc[phase_ind, epoch]
