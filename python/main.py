@@ -227,8 +227,8 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                 logger.debug('Batch {} running loss: {}'.format(batch_ind, running_loss))
 
                 # test the iou and pixelwise accuracy using evaluator
-                preds = preds.numpy()
-                targets = targets.numpy()
+                preds = preds.cpu().numpy()
+                targets = targets.cpu().numpy()
                 evaluator.add_batch(targets, preds)
 
             
