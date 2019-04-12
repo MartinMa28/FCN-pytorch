@@ -160,6 +160,33 @@ def pixelwise_acc(pred, target):
     total   = (target == target).sum().to(torch.float32)
     return correct / total
 
+def cross_entropy_for_classes(outputs, targets, num_classes):
+    def _cross_entropy(probs, pred_probs):
+        result = 0
+        for ind, prob in enumerate(probs):
+            if pred_probs[ind] < 1e-8:
+                result += - prob * torch.log2(torch.tensor(1e-8))
+            else:
+                result += - prob * torch.log2(pred_probs[ind])
+        
+        return result
+    
+    batch_size = outputs.size()[0]
+    height = outputs.size()[-2]
+    width = outputs.size()[-1]
+    # flatten out outputs and targets to NxCx(-1) and Nx(-1) respectively
+    outputs = outputs.view((outputs.size()[0], outputs.size()[1], -1))
+    targets = targets.view((targets.size()[0], -1)).to(torch.int)
+
+    preds = torch.argmax(outputs, dim=1)
+    cross_entropy = torch.zeros((batch_size,), dtype=torch.float)
+    for b_i in range(batch_size):
+        batch_preds = torch.bincount(preds[b_i], minlength=num_classes).to(torch.float) / (height * width)
+        batch_targets = torch.bincount(targets[b_i], minlength=num_classes).to(torch.float) / (height * width)
+        cross_entropy[b_i] = _cross_entropy(batch_targets, batch_preds)
+    
+    return cross_entropy
+
 
 def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
     model = get_fcn_model(num_classes, use_gpu)
@@ -211,7 +238,9 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
 
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(imgs)
-                    loss = criterion(outputs, targets)
+                    loss_1 = criterion(outputs, targets)
+                    loss_2 = cross_entropy_for_classes(outputs, targets, num_classes)
+                    loss = loss_1 + loss_2
                     
                     if phase == 'train':
                         loss.backward()
