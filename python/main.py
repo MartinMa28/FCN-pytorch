@@ -212,13 +212,13 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(imgs)
                     loss = criterion(outputs, targets)
-                    preds = torch.argmax(outputs, dim=1)
                     
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
 
                 # computes loss and acc for current iteration
+                preds = torch.argmax(outputs, dim=1)
                 ious = iou(preds, targets, num_classes)
                 
                 running_loss += loss * imgs.size(0)
