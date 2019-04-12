@@ -41,7 +41,7 @@ logger = logging.getLogger('main')
 
 # 20 classes and background for VOC segmentation
 n_classes = 20 + 1
-batch_size = 2
+batch_size = 8
 epochs = 3
 lr = 1e-4
 #momentum = 0
@@ -69,14 +69,14 @@ pixel_scores = np.zeros(epochs)
 def get_dataset_dataloader(data_set_type, batch_size):
     data_transforms = {
         'train': transforms.Compose([
-            RandomCrop(512),
+            RandomCrop(256),
             RandomHorizontalFlip(),
             ToTensor(),
             NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
 
         'val': transforms.Compose([
-            CenterCrop(512),
+            CenterCrop(256),
             ToTensor(),
             NormalizeVOC([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
@@ -185,7 +185,7 @@ def cross_entropy_for_classes(outputs, targets, num_classes):
         batch_targets = torch.bincount(targets[b_i], minlength=num_classes).to(torch.float) / (height * width)
         cross_entropy[b_i] = _cross_entropy(batch_targets, batch_preds)
     
-    return cross_entropy
+    return torch.mean(cross_entropy)
 
 
 def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate, w_decay):
@@ -240,7 +240,8 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                     outputs = model(imgs)
                     loss_1 = criterion(outputs, targets)
                     loss_2 = cross_entropy_for_classes(outputs, targets, num_classes)
-                    loss = loss_1 + loss_2
+                    print(loss_1, loss_2)
+                    loss = 0.5 * loss_1 + 0.5 * loss_2
                     
                     if phase == 'train':
                         loss.backward()
