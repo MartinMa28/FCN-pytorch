@@ -240,7 +240,6 @@ def train(data_set_type, num_classes, batch_size, epochs, use_gpu, learning_rate
                     outputs = model(imgs)
                     loss_1 = criterion(outputs, targets)
                     loss_2 = cross_entropy_for_classes(outputs, targets, num_classes)
-                    print(loss_1, loss_2)
                     loss = 0.5 * loss_1 + 0.5 * loss_2
                     
                     if phase == 'train':
